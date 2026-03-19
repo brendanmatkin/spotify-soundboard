@@ -125,6 +125,15 @@ export async function setShuffle(token: string, state: boolean) {
 	}
 }
 
+export async function setVolume(token: string, percent: number) {
+	const vol = Math.max(0, Math.min(100, Math.round(percent)));
+	const res = await apiFetch(token, `${API}/me/player/volume?volume_percent=${vol}`, { method: 'PUT' });
+	if (!res.ok) {
+		const err = await res.json().catch(() => ({}));
+		throw new Error(err?.error?.message ?? `Volume failed (${res.status})`);
+	}
+}
+
 export async function getPlayerState(token: string) {
 	const res = await apiFetch(token, `${API}/me/player`);
 	if (res.status === 204) return null;

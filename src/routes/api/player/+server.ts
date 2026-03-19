@@ -1,6 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import { getAccessToken } from '$lib/server/tokens';
-import { pause, resume, skipNext, skipPrev, setShuffle, getPlayerState } from '$lib/server/spotify';
+import { pause, resume, skipNext, skipPrev, setShuffle, setVolume, getPlayerState } from '$lib/server/spotify';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async () => {
@@ -20,6 +20,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			case 'next': await skipNext(token); break;
 			case 'prev': await skipPrev(token); break;
 			case 'shuffle': await setShuffle(token, value); break;
+			case 'volume': await setVolume(token, value); break;
 			default: throw error(400, `Unknown action: ${action}`);
 		}
 	} catch (e) {

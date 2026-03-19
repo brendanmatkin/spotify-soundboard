@@ -1,42 +1,83 @@
-# sv
+# Spotify Soundboard
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A local web app for triggering Spotify playlists from a tablet (or any browser). Shows a grid of playlist buttons — tap one to start playing via Spotify Connect. Designed to be fast on slow devices.
 
-## Creating a project
+## Features
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Grid of playlist buttons with artwork
+- Edit mode: add/remove/reorder playlists via search, library browse, or paste URL
+- Custom images per button
+- Player controls: play/pause, skip, shuffle, volume
+- Track progress bar
+- Device selector (Spotify Connect)
+- Config persists on the server (works across devices)
+- Auto-syncs between clients
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) (v18 or later)
+- A **Spotify Premium** account (required for playback control)
+- A Spotify Developer app (free to create)
+
+## Setup
+
+### 1. Clone and install
 
 ```sh
-# create a new project
-npx sv create my-app
+git clone https://github.com/brendanmatkin/spotify-soundboard.git
+cd spotify-soundboard
+npm install
 ```
 
-To recreate this project with the same configuration:
+### 2. Create a Spotify app
+
+1. Go to the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
+2. Create a new app
+3. Add a redirect URI: `http://127.0.0.1:5173/auth/callback`
+4. Note your **Client ID** and **Client Secret**
+
+### 3. Configure environment
+
+Copy the example env file and fill in your credentials:
 
 ```sh
-# recreate this project
-npx sv@0.12.8 create --template minimal --types ts --no-install .
+cp .env.example .env
 ```
 
-## Developing
+Edit `.env`:
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+```
+SPOTIFY_CLIENT_ID=your_client_id
+SPOTIFY_CLIENT_SECRET=your_client_secret
+ORIGIN=http://127.0.0.1:5173
+```
+
+### 4. Run
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+npm run dev -- --host
 ```
 
-## Building
+Then open `http://127.0.0.1:5173` in a browser on the machine running the server. You'll be redirected to Spotify to log in. This only needs to happen once — tokens are stored on the server.
 
-To create a production version of your app:
+### 5. Access from a tablet
+
+After logging in on the host machine, open `http://<your-computer-ip>:5173` on the tablet. No login needed — the tablet uses the server's stored tokens.
+
+To find your computer's local IP: `ipconfig` (Windows) or `ifconfig` / `ip addr` (Mac/Linux).
+
+## Production build
 
 ```sh
 npm run build
+HOST=0.0.0.0 PORT=3000 node build
 ```
 
-You can preview the production build with `npm run preview`.
+If using port 3000 in production, add `http://127.0.0.1:3000/auth/callback` as a redirect URI in the Spotify Dashboard and update `ORIGIN` in `.env` accordingly.
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## How it works
+
+- **SvelteKit** app with `adapter-node` for local hosting
+- All Spotify API calls happen server-side (tokens never reach the browser)
+- Button config stored in `data/config.json`, custom images in `data/images/`
+- Player state polls every 5 seconds (pauses when the tab is hidden)

@@ -25,6 +25,11 @@
 	let nowPlayingTrack = $state<string | null>(null);
 	let nowPlayingArtist = $state<string | null>(null);
 	let nowPlayingContextUri = $state<string | null>(null);
+	let volume = $state(50);
+	let progressMs = $state(0);
+	let durationMs = $state(0);
+	let progressUpdatedAt = $state(0);
+	let displayProgress = $state(0);
 
 	async function fetchPlayerState() {
 		try {
@@ -38,13 +43,25 @@
 				nowPlayingArtist =
 					state.item?.artists?.map((a: { name: string }) => a.name).join(', ') ?? null;
 				nowPlayingContextUri = state.context?.uri ?? null;
+				volume = state.device?.volume_percent ?? volume;
+				progressMs = state.progress_ms ?? 0;
+				durationMs = state.item?.duration_ms ?? 0;
+				progressUpdatedAt = Date.now();
 			}
 		} catch {
 			/* ignore */
 		}
 	}
 
-	async function playerAction(action: string, value?: boolean) {
+	let volumeTimeout: ReturnType<typeof setTimeout> | undefined;
+	function handleVolumeInput(e: Event) {
+		const val = parseInt((e.target as HTMLInputElement).value);
+		volume = val;
+		clearTimeout(volumeTimeout);
+		volumeTimeout = setTimeout(() => playerAction('volume', val), 150);
+	}
+
+	async function playerAction(action: string, value?: boolean | number) {
 		// For pause/resume, refresh state first to avoid stale toggle
 		if (action === 'pause' || action === 'resume') {
 			await fetchPlayerState();
@@ -68,21 +85,54 @@
 
 	onMount(() => {
 		fetchPlayerState();
+
+		// Smooth progress bar interpolation
+		let raf: number;
+		function tickProgress() {
+			if (isPlaying && durationMs > 0) {
+				const elapsed = Date.now() - progressUpdatedAt;
+				displayProgress = Math.min((progressMs + elapsed) / durationMs, 1);
+			} else if (durationMs > 0) {
+				displayProgress = progressMs / durationMs;
+			} else {
+				displayProgress = 0;
+			}
+			raf = requestAnimationFrame(tickProgress);
+		}
+		raf = requestAnimationFrame(tickProgress);
 		// Poll at 10s, only when tab is visible
-		let interval = setInterval(fetchPlayerState, 10000);
+		let interval = setInterval(() => { fetchPlayerState(); refreshConfig(); }, 5000);
 		function onVisibility() {
 			clearInterval(interval);
 			if (!document.hidden) {
 				fetchPlayerState();
+				refreshConfig();
 				interval = setInterval(fetchPlayerState, 10000);
 			}
 		}
 		document.addEventListener('visibilitychange', onVisibility);
+
 		return () => {
 			clearInterval(interval);
+			cancelAnimationFrame(raf);
 			document.removeEventListener('visibilitychange', onVisibility);
 		};
 	});
+
+	// Sync config when tab becomes visible (e.g. edited on another device)
+	async function refreshConfig() {
+		try {
+			const res = await fetch('/api/config');
+			if (!res.ok) return;
+			const config = await res.json();
+			const fresh = (config.buttons ?? []).filter((b: ButtonConfig) => b.playlist_uri);
+			// Only update if different to avoid disrupting local state
+			if (JSON.stringify($state.snapshot(buttons)) !== JSON.stringify(fresh)) {
+				buttons = fresh;
+				selectedDeviceId = config.selected_device_id ?? selectedDeviceId;
+			}
+		} catch { /* ignore */ }
+	}
 
 	// Preload library when entering edit mode
 	$effect(() => {
@@ -119,18 +169,7 @@
 	// Derived: only populated buttons for play mode
 	let populatedButtons = $derived(buttons.filter((b) => b.playlist_uri));
 
-	// Dynamic grid: pick columns so everything fits on screen without scrolling
 	let visibleCount = $derived(editCtx.value ? buttons.length + 1 : populatedButtons.length);
-	let columns = $derived.by(() => {
-		const count = Math.max(visibleCount, 1);
-		if (count <= 2) return 2;
-		if (count <= 4) return 2;
-		if (count <= 6) return 3;
-		if (count <= 12) return 4;
-		if (count <= 20) return 5;
-		return 6;
-	});
-	let rows = $derived(Math.ceil(Math.max(visibleCount, 1) / columns));
 
 	// Edit mode
 	let editingIndex = $state<number | null>(null); // index in buttons array, or -1 for "add new"
@@ -315,7 +354,7 @@
 	<div class="toast">{errorMsg}</div>
 {/if}
 
-<div class="grid" style:--columns={columns} style:--rows={rows}>
+<div class="grid">
 	{#if editCtx.value}
 		{#each buttons as btn, i (btn.id)}
 			<button
@@ -358,26 +397,60 @@
 </div>
 
 <div class="bottom-bar">
-	<button class="device-btn" onclick={loadDevices}>
-		&#x266A; {selectedDeviceName}
-	</button>
+	<div class="progress-bar" style:--progress="{displayProgress * 100}%"></div>
 
-	<div class="controls">
-		<button class="ctrl-btn" class:active={shuffleOn} onclick={() => playerAction('shuffle', !shuffleOn)} title="Shuffle">&#x21C4;</button>
-		<button class="ctrl-btn" onclick={() => playerAction('prev')} title="Previous">&#x23EE;</button>
-		<button class="ctrl-btn play-pause" onclick={() => playerAction(isPlaying ? 'pause' : 'resume')} title={isPlaying ? 'Pause' : 'Play'}>
-			{#if isPlaying}&#x23F8;{:else}&#x25B6;{/if}
-		</button>
-		<button class="ctrl-btn" onclick={() => playerAction('next')} title="Next">&#x23ED;</button>
+	<div class="bar-row-1">
+		<div class="controls">
+			<button class="ctrl-btn" class:active={shuffleOn} onclick={() => playerAction('shuffle', !shuffleOn)} title="Shuffle">&#x21C4;</button>
+			<button class="ctrl-btn" onclick={() => playerAction('prev')} title="Previous">&#x23EE;</button>
+			<button class="ctrl-btn play-pause" onclick={() => playerAction(isPlaying ? 'pause' : 'resume')} title={isPlaying ? 'Pause' : 'Play'}>
+				{#if isPlaying}<span class="pause-icon"></span>{:else}&#x25B6;{/if}
+			</button>
+			<button class="ctrl-btn" onclick={() => playerAction('next')} title="Next">&#x23ED;</button>
+		</div>
+		<input
+			type="range"
+			class="vol-slider vol-mobile"
+			min="0"
+			max="100"
+			value={volume}
+			oninput={(e) => handleVolumeInput(e)}
+			style:--fill="{volume}%"
+		/>
+		<span class="vol-pct vol-mobile">{volume}</span>
 	</div>
 
-	<div class="now-playing">
-		{#if nowPlayingTrack}
-			<span class="track-name">{nowPlayingTrack}</span>
-			{#if nowPlayingArtist}<span class="track-artist">&middot; {nowPlayingArtist}</span>{/if}
-		{:else}
-			<span class="track-name dimmed">Not playing</span>
-		{/if}
+	<div class="bar-row-2">
+		<button class="device-btn" onclick={loadDevices}>
+			&#x266A; {selectedDeviceName}
+		</button>
+
+		<div class="controls desktop-only">
+			<button class="ctrl-btn" class:active={shuffleOn} onclick={() => playerAction('shuffle', !shuffleOn)} title="Shuffle">&#x21C4;</button>
+			<button class="ctrl-btn" onclick={() => playerAction('prev')} title="Previous">&#x23EE;</button>
+			<button class="ctrl-btn play-pause" onclick={() => playerAction(isPlaying ? 'pause' : 'resume')} title={isPlaying ? 'Pause' : 'Play'}>
+				{#if isPlaying}<span class="pause-icon"></span>{:else}&#x25B6;{/if}
+			</button>
+			<button class="ctrl-btn" onclick={() => playerAction('next')} title="Next">&#x23ED;</button>
+			<input
+				type="range"
+				class="vol-slider vol-desktop"
+				min="0"
+				max="100"
+				value={volume}
+				oninput={(e) => handleVolumeInput(e)}
+				style:--fill="{volume}%"
+			/>
+		</div>
+
+		<div class="now-playing">
+			{#if nowPlayingTrack}
+				<span class="track-name">{nowPlayingTrack}</span>
+				{#if nowPlayingArtist}<span class="track-artist">&middot; {nowPlayingArtist}</span>{/if}
+			{:else}
+				<span class="track-name dimmed">Not playing</span>
+			{/if}
+		</div>
 	</div>
 	{#if showDevices}
 		<div class="device-dropdown">
@@ -522,13 +595,15 @@
 
 <style>
 	.grid {
-		display: grid;
-		grid-template-columns: repeat(var(--columns), 1fr);
-		grid-template-rows: repeat(var(--rows), 1fr);
+		display: flex;
+		flex-wrap: wrap;
+		align-content: start;
 		gap: 8px;
 		padding: 8px;
-		height: calc(100% - 48px);
-		overflow: hidden;
+		padding-bottom: 90px;
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
 	}
 
 	.cell {
@@ -542,6 +617,17 @@
 		justify-content: center;
 		touch-action: manipulation;
 		transition: transform 0.15s ease, box-shadow 0.2s ease;
+		width: calc(33.333% - 6px);
+		aspect-ratio: 1;
+		flex-shrink: 0;
+	}
+
+	@media (min-width: 768px) {
+		.cell {
+			width: 20vmin;
+			max-width: 40vmin;
+			flex-grow: 1;
+		}
 	}
 
 	.cell:active {
@@ -658,14 +744,79 @@
 
 	/* Bottom bar: device + controls + now playing */
 	.bottom-bar {
-		position: relative;
-		display: grid;
-		grid-template-columns: 1fr auto 1fr;
-		align-items: center;
-		padding: 4px 12px;
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		display: flex;
+		flex-direction: column;
 		background: var(--surface);
 		border-top: 1px solid var(--surface-hover);
+		z-index: 50;
+	}
+
+	.progress-bar {
+		height: 3px;
+		background: linear-gradient(to right, var(--text-dim) var(--progress, 0%), transparent var(--progress, 0%));
+		margin-bottom: 2px;
+	}
+
+	.bar-row-1 {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		padding: 4px 12px 2px;
+	}
+
+	.bar-row-2 {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 		gap: 8px;
+		padding: 2px 12px 6px;
+	}
+
+	.controls.desktop-only {
+		display: none;
+	}
+
+	.vol-pct {
+		font-size: 0.7rem;
+		color: var(--text-dim);
+		width: 24px;
+		text-align: right;
+		flex-shrink: 0;
+	}
+
+	.vol-desktop {
+		width: 80px;
+		height: 4px;
+		margin-left: 12px;
+	}
+
+	.vol-desktop::-webkit-slider-thumb {
+		width: 14px;
+		height: 14px;
+	}
+
+	.vol-desktop::-moz-range-thumb {
+		width: 14px;
+		height: 14px;
+	}
+
+	@media (min-width: 768px) {
+		.bar-row-1 {
+			display: none;
+		}
+		.bar-row-2 {
+			display: grid;
+			grid-template-columns: 1fr auto 1fr;
+			padding: 6px 12px;
+		}
+		.controls.desktop-only {
+			display: flex;
+		}
 	}
 
 	.device-btn {
@@ -688,8 +839,8 @@
 
 	.ctrl-btn {
 		background: none;
-		width: 34px;
-		height: 34px;
+		width: 44px;
+		height: 44px;
 		border-radius: 50%;
 		display: flex;
 		align-items: center;
@@ -715,8 +866,57 @@
 		font-size: 1rem;
 	}
 
+	.pause-icon {
+		display: flex;
+		gap: 3px;
+	}
+
+	.pause-icon::before,
+	.pause-icon::after {
+		content: '';
+		width: 4px;
+		height: 14px;
+		background: currentColor;
+		border-radius: 1px;
+	}
+
 	.ctrl-btn.play-pause:active {
 		background: var(--text-dim);
+	}
+
+	.vol-slider {
+		flex: 1;
+		height: 6px;
+		-webkit-appearance: none;
+		appearance: none;
+		background: linear-gradient(to right, var(--text-dim) var(--fill, 0%), var(--surface-hover) var(--fill, 0%));
+		border-radius: 3px;
+		outline: none;
+		touch-action: manipulation;
+	}
+
+	.vol-slider::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background: var(--text);
+		cursor: pointer;
+	}
+
+	.vol-slider::-moz-range-thumb {
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background: var(--text);
+		border: none;
+		cursor: pointer;
+	}
+
+	.vol-slider::-moz-range-progress {
+		background: var(--text-dim);
+		border-radius: 3px;
+		height: 6px;
 	}
 
 	.now-playing {
