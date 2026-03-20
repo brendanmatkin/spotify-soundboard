@@ -261,7 +261,8 @@
 		formData.append('file', file);
 		const res = await fetch('/api/upload', { method: 'POST', body: formData });
 		if (!res.ok) {
-			showError('Image upload failed');
+			const err = await res.json().catch(() => ({ message: 'Image upload failed' }));
+			showError(err.message ?? 'Image upload failed');
 			return;
 		}
 		const { url } = await res.json();
@@ -664,17 +665,19 @@
 
 	.label {
 		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		padding: 28px 10px 10px;
-		background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-		font-size: clamp(0.75rem, 2.5cqi, 1.2rem);
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 10px;
+		background: rgba(0, 0, 0, 0.45);
+		font-size: clamp(0.85rem, 4cqi, 1.5rem);
 		font-weight: 600;
 		text-align: center;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+		line-height: 1.2;
+		overflow-wrap: break-word;
+		word-break: break-word;
 	}
 
 	.plus {

@@ -7,9 +7,12 @@ const IMAGES_DIR = path.join(process.cwd(), 'data', 'images');
 
 const MIME: Record<string, string> = {
 	jpg: 'image/jpeg',
+	jpeg: 'image/jpeg',
 	png: 'image/png',
 	webp: 'image/webp',
-	gif: 'image/gif'
+	gif: 'image/gif',
+	heic: 'image/heic',
+	heif: 'image/heif'
 };
 
 export const GET: RequestHandler = async ({ params }) => {
