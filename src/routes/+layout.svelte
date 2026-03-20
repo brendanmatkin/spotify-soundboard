@@ -13,7 +13,9 @@
 
 <div class="app">
 	<header class="top-bar">
-		<h1 class="title">Soundboard</h1>
+		<div class="brand">
+			<h1 class="title">Soundboard</h1>
+		</div>
 		<button
 			class="edit-btn"
 			class:active={editMode}
@@ -32,34 +34,56 @@
 		height: 100vh;
 		display: flex;
 		flex-direction: column;
+		background: var(--bg);
 	}
 
 	.top-bar {
 		height: var(--top-bar-height);
-		background: var(--surface);
+		background: var(--bg-warm);
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0 16px;
+		padding: 0 20px;
 		flex-shrink: 0;
+		border-bottom: 1px solid var(--surface);
+	}
+
+	.brand {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 	}
 
 	.title {
-		font-size: 1.2rem;
+		font-size: 1.15rem;
 		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--text);
 	}
 
 	.edit-btn {
-		background: var(--surface-hover);
-		padding: 8px 20px;
+		background: var(--surface);
+		padding: 7px 22px;
 		border-radius: 20px;
-		font-size: 0.9rem;
+		font-size: 0.82rem;
 		font-weight: 500;
+		letter-spacing: 0.03em;
+		text-transform: uppercase;
+		color: var(--text-dim);
+		transition: all 0.2s ease;
+		border: 1px solid var(--surface-hover);
+	}
+
+	.edit-btn:active {
+		transform: scale(0.96);
 	}
 
 	.edit-btn.active {
 		background: var(--accent);
-		color: white;
+		color: var(--bg);
+		border-color: var(--accent);
+		font-weight: 600;
 	}
 
 	.content {
