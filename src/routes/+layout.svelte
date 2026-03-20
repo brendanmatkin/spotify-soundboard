@@ -13,9 +13,7 @@
 
 <div class="app">
 	<header class="top-bar">
-		<div class="brand">
-			<h1 class="title">Soundboard</h1>
-		</div>
+		<h1 class="title">Soundboard</h1>
 		<button
 			class="edit-btn"
 			class:active={editMode}
@@ -46,12 +44,6 @@
 		padding: 0 20px;
 		flex-shrink: 0;
 		border-bottom: 1px solid var(--surface);
-	}
-
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 10px;
 	}
 
 	.title {
