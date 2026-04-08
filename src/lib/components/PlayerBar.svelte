@@ -117,19 +117,19 @@
 		right: 0;
 		display: flex;
 		flex-direction: column;
-		background: var(--bg-warm);
-		border-top: 1px solid var(--surface);
+		background: var(--bar-bg);
+		border-top: var(--bar-border);
 		z-index: 50;
-		backdrop-filter: blur(16px);
-		-webkit-backdrop-filter: blur(16px);
+		backdrop-filter: var(--bar-blur);
+		-webkit-backdrop-filter: var(--bar-blur);
 	}
 
 	.progress-bar {
 		height: 3px;
 		background: linear-gradient(
 			to right,
-			var(--accent) var(--progress, 0%),
-			var(--surface-hover) var(--progress, 0%)
+			var(--progress-fill) var(--progress, 0%),
+			var(--progress-track) var(--progress, 0%)
 		);
 		margin-bottom: 6px;
 	}
@@ -151,9 +151,7 @@
 		padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
 	}
 
-	.controls.desktop-only {
-		display: none;
-	}
+	.controls.desktop-only { display: none; }
 
 	.vol-desktop {
 		width: 80px;
@@ -175,16 +173,16 @@
 	}
 
 	.device-btn {
-		background: var(--surface);
+		background: var(--ctrl-bg);
 		padding: 5px 12px;
-		border-radius: 100px;
+		border-radius: var(--radius-sm);
 		font-size: 0.7rem;
 		font-weight: 400;
 		color: var(--text-dim);
 		white-space: nowrap;
 		width: fit-content;
 		justify-self: start;
-		border: 1px solid var(--surface-hover);
+		border: var(--ctrl-border);
 		transition: background 0.15s ease;
 	}
 
@@ -198,7 +196,7 @@
 	}
 
 	.ctrl-btn {
-		background: var(--surface);
+		background: var(--ctrl-bg);
 		width: 54px;
 		height: 54px;
 		border-radius: 50%;
@@ -206,20 +204,20 @@
 		align-items: center;
 		justify-content: center;
 		font-size: 1.2rem;
-		color: var(--text-dim);
+		color: var(--ctrl-color);
 		touch-action: manipulation;
 		transition: color 0.15s ease, background 0.15s ease;
-		border: 1px solid var(--surface-hover);
+		border: var(--ctrl-border);
 	}
 
-	.ctrl-btn:active { background: var(--surface-raised); }
+	.ctrl-btn:active { background: var(--ctrl-active-bg); }
 	.ctrl-btn.active { color: var(--accent); }
 
 	.ctrl-btn.play-pause {
 		width: 52px;
 		height: 52px;
-		background: var(--text);
-		color: var(--bg);
+		background: var(--ctrl-play-bg);
+		color: var(--ctrl-play-color);
 		font-size: 1rem;
 		border: none;
 		transition: transform 0.15s ease, background 0.15s ease;
@@ -227,7 +225,7 @@
 
 	.ctrl-btn.play-pause:active {
 		transform: scale(0.9);
-		background: var(--text-dim);
+		background: var(--accent-dim);
 	}
 
 	.pause-icon { display: flex; gap: 3px; }
@@ -251,6 +249,7 @@
 	}
 
 	.track-name {
+		font-family: var(--font-display, inherit);
 		font-size: 0.75rem;
 		font-weight: 500;
 		overflow: hidden;
@@ -272,13 +271,13 @@
 		position: absolute;
 		bottom: 100%;
 		left: 16px;
-		background: var(--surface);
+		background: var(--modal-bg);
 		border-radius: var(--radius);
 		padding: 6px;
 		min-width: 240px;
-		box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6);
+		box-shadow: var(--modal-shadow);
 		z-index: 10;
-		border: 1px solid var(--surface-hover);
+		border: var(--modal-border);
 	}
 
 	.device-option {

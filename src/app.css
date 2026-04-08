@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Crimson+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400&display=swap');
 
 *,
 *::before,
@@ -9,23 +9,73 @@
 }
 
 :root {
-	--bg: #0d0d0f;
-	--bg-warm: #13121a;
-	--surface: #1a1922;
-	--surface-hover: #24232e;
-	--surface-raised: #2a2936;
-	--text: #eae8f0;
-	--text-dim: #8a8697;
-	--text-muted: #5c586a;
-	--accent: #e8a849;
-	--accent-glow: rgba(232, 168, 73, 0.25);
-	--accent-dim: #c48a2f;
-	--danger: #d94452;
-	--radius: 14px;
-	--radius-sm: 8px;
-	--top-bar-height: 60px;
-	--font: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+	/* ─── Core palette ─── */
+	--bg: #0a0708;
+	--bg-warm: #0f0b0d;
+	--surface: #1a1316;
+	--surface-hover: #271d22;
+	--surface-raised: #332830;
+	--text: #d4c5b0;
+	--text-dim: #8c7e6e;
+	--text-muted: #5a4f44;
+	--accent: #c4453a;
+	--accent-glow: rgba(196, 69, 58, 0.3);
+	--accent-dim: #a03830;
+	--danger: #8b2020;
+
+	/* ─── Theme tokens ─── */
+	--radius: 4px;
+	--radius-sm: 3px;
+	--top-bar-height: 56px;
+	--font-display: 'MedievalSharp', cursive;
+	--font: 'Crimson Pro', 'Georgia', serif;
 	--font-mono: 'JetBrains Mono', monospace;
+
+	/* ─── Card styling ─── */
+	--card-border: 1px solid rgba(196, 69, 58, 0.2);
+	--card-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 1px rgba(196, 69, 58, 0.15);
+	--card-shadow-active:
+		0 0 0 2px var(--accent),
+		0 0 24px rgba(196, 69, 58, 0.4),
+		0 0 60px rgba(196, 69, 58, 0.15);
+	--card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 2px rgba(196, 69, 58, 0.2);
+	--card-glow-pulse: rgba(196, 69, 58, 0.35);
+
+	/* ─── Label overlay ─── */
+	--label-bg: rgba(0, 0, 0, 0.55);
+	--label-shadow: 0 2px 10px rgba(0, 0, 0, 1), 0 0 3px rgba(0, 0, 0, 0.8);
+
+	/* ─── Edit mode ─── */
+	--edit-outline: 1px solid rgba(196, 69, 58, 0.5);
+	--edit-badge-bg: rgba(10, 7, 8, 0.8);
+	--edit-badge-border: 1px solid rgba(196, 69, 58, 0.3);
+
+	/* ─── Bottom bar ─── */
+	--bar-bg: var(--bg-warm);
+	--bar-border: 1px solid rgba(196, 69, 58, 0.12);
+	--bar-blur: blur(16px);
+
+	/* ─── Control buttons ─── */
+	--ctrl-bg: var(--surface);
+	--ctrl-border: 1px solid rgba(196, 69, 58, 0.2);
+	--ctrl-color: var(--text-dim);
+	--ctrl-active-bg: var(--surface-raised);
+	--ctrl-play-bg: var(--accent);
+	--ctrl-play-color: #d4c5b0;
+
+	/* ─── Progress bar ─── */
+	--progress-fill: var(--accent);
+	--progress-track: var(--surface-hover);
+
+	/* ─── Modal ─── */
+	--modal-bg: var(--surface);
+	--modal-border: 1px solid rgba(196, 69, 58, 0.15);
+	--modal-shadow: 0 24px 80px rgba(0, 0, 0, 0.7), 0 0 1px rgba(196, 69, 58, 0.2);
+	--modal-overlay: rgba(0, 0, 0, 0.85);
+
+	/* ─── Toast ─── */
+	--toast-bg: var(--danger);
+	--toast-shadow: 0 4px 20px rgba(139, 32, 32, 0.4);
 }
 
 html, body {
@@ -37,6 +87,19 @@ html, body {
 	overflow: hidden;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Parchment texture via subtle repeating gradient */
+body::before {
+	content: '';
+	position: fixed;
+	inset: 0;
+	background:
+		radial-gradient(ellipse at 20% 50%, rgba(196, 69, 58, 0.03) 0%, transparent 70%),
+		radial-gradient(ellipse at 80% 20%, rgba(196, 69, 58, 0.02) 0%, transparent 60%),
+		radial-gradient(ellipse at 50% 90%, rgba(140, 80, 40, 0.03) 0%, transparent 50%);
+	pointer-events: none;
+	z-index: 0;
 }
 
 button {
@@ -58,7 +121,7 @@ select, input {
 	border: 1px solid var(--surface-hover);
 	padding: 10px 14px;
 	border-radius: var(--radius-sm);
-	font-size: 0.85rem;
+	font-size: 0.9rem;
 	color: var(--text);
 	transition: border-color 0.15s ease;
 }
@@ -71,12 +134,12 @@ select, input {
 /* ─── Shared button styles ─── */
 .btn-accent {
 	background: var(--accent);
-	color: var(--bg);
+	color: var(--text);
 	padding: 10px 18px;
 	border-radius: var(--radius-sm);
 	font-weight: 600;
-	font-size: 0.82rem;
-	letter-spacing: 0.02em;
+	font-size: 0.85rem;
+	letter-spacing: 0.03em;
 	transition: background 0.15s ease;
 }
 
@@ -87,7 +150,7 @@ select, input {
 	background: var(--surface-hover);
 	padding: 8px 14px;
 	border-radius: var(--radius-sm);
-	font-size: 0.8rem;
+	font-size: 0.85rem;
 	font-weight: 500;
 	color: var(--text-dim);
 	transition: background 0.15s ease;
@@ -98,7 +161,7 @@ select, input {
 .btn-ghost {
 	padding: 8px 14px;
 	background: none;
-	font-size: 0.8rem;
+	font-size: 0.85rem;
 	color: var(--text-muted);
 	font-weight: 400;
 }
@@ -107,13 +170,13 @@ select, input {
 	padding: 8px 16px;
 	background: var(--danger);
 	border-radius: var(--radius-sm);
-	font-size: 0.8rem;
+	font-size: 0.85rem;
 	font-weight: 600;
 	letter-spacing: 0.02em;
 	transition: background 0.15s ease;
 }
 
-.btn-danger:active { background: #c03040; }
+.btn-danger:active { background: #6b1818; }
 
 /* ─── Shared volume slider ─── */
 .vol-slider {
@@ -138,7 +201,7 @@ select, input {
 	border-radius: 50%;
 	background: var(--text);
 	cursor: pointer;
-	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	box-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
 .vol-slider::-moz-range-thumb {
@@ -148,7 +211,7 @@ select, input {
 	background: var(--text);
 	border: none;
 	cursor: pointer;
-	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+	box-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
 }
 
 .vol-slider::-moz-range-progress {

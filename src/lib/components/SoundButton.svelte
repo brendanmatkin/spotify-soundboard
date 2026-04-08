@@ -53,18 +53,19 @@
 		width: calc(33.333% - 7px);
 		aspect-ratio: 1;
 		flex-shrink: 0;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+		box-shadow: var(--card-shadow);
+		border: var(--card-border);
 	}
 
 	@media (min-width: 768px) {
 		.cell {
 			width: auto;
-			border-radius: 16px;
+			border-radius: var(--radius);
 		}
 
 		.cell:hover {
 			transform: scale(1.03);
-			box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+			box-shadow: var(--card-shadow-hover);
 		}
 	}
 
@@ -73,10 +74,7 @@
 	}
 
 	.cell.active-playlist {
-		box-shadow:
-			0 0 0 2px var(--accent),
-			0 0 20px var(--accent-glow),
-			0 4px 16px rgba(0, 0, 0, 0.4);
+		box-shadow: var(--card-shadow-active);
 	}
 
 	.cell.playing {
@@ -84,9 +82,9 @@
 	}
 
 	@keyframes pulse {
-		0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+		0% { box-shadow: 0 0 0 0 var(--card-glow-pulse); }
 		50% { box-shadow: 0 0 0 14px transparent; }
-		100% { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+		100% { box-shadow: var(--card-shadow); }
 	}
 
 	.artwork {
@@ -109,13 +107,14 @@
 		align-items: center;
 		justify-content: center;
 		padding: 10px;
-		background: rgba(0, 0, 0, 0.5);
+		background: var(--label-bg);
+		font-family: var(--font-display, inherit);
 		font-size: clamp(0.9rem, 5cqi, 1.6rem);
 		font-weight: 700;
 		letter-spacing: 0.02em;
 		text-align: center;
-		text-shadow: 0 2px 10px rgba(0, 0, 0, 1), 0 0 3px rgba(0, 0, 0, 0.8);
-		line-height: 1.25;
+		text-shadow: var(--label-shadow);
+		line-height: 1.2;
 		overflow-wrap: break-word;
 		word-break: break-word;
 	}
@@ -130,9 +129,7 @@
 		position: absolute;
 		top: 8px;
 		right: 8px;
-		background: rgba(0, 0, 0, 0.65);
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
+		background: var(--edit-badge-bg);
 		width: 30px;
 		height: 30px;
 		border-radius: 50%;
@@ -140,11 +137,11 @@
 		align-items: center;
 		justify-content: center;
 		font-size: 0.8rem;
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		border: var(--edit-badge-border);
 	}
 
 	.edit-mode {
-		outline: 2px solid var(--accent);
-		outline-offset: -2px;
+		outline: var(--edit-outline);
+		outline-offset: -1px;
 	}
 </style>

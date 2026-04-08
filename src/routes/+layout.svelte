@@ -33,6 +33,8 @@
 		display: flex;
 		flex-direction: column;
 		background: var(--bg);
+		position: relative;
+		z-index: 1;
 	}
 
 	.top-bar {
@@ -43,28 +45,28 @@
 		justify-content: space-between;
 		padding: 0 20px;
 		flex-shrink: 0;
-		border-bottom: 1px solid var(--surface);
+		border-bottom: var(--bar-border);
 	}
 
 	.title {
-		font-size: 1.15rem;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		color: var(--text);
+		font-family: var(--font-display);
+		font-size: 1.3rem;
+		font-weight: 400;
+		letter-spacing: 0.1em;
+		color: var(--accent);
 	}
 
 	.edit-btn {
 		background: var(--surface);
-		padding: 7px 22px;
-		border-radius: 20px;
-		font-size: 0.82rem;
+		padding: 6px 18px;
+		border-radius: var(--radius-sm);
+		font-size: 0.8rem;
 		font-weight: 500;
-		letter-spacing: 0.03em;
+		letter-spacing: 0.08em;
 		text-transform: uppercase;
 		color: var(--text-dim);
 		transition: all 0.2s ease;
-		border: 1px solid var(--surface-hover);
+		border: var(--ctrl-border);
 	}
 
 	.edit-btn:active {
@@ -73,7 +75,7 @@
 
 	.edit-btn.active {
 		background: var(--accent);
-		color: var(--bg);
+		color: var(--text);
 		border-color: var(--accent);
 		font-weight: 600;
 	}

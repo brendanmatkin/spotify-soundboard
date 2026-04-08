@@ -182,7 +182,7 @@
 	.modal-overlay {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.8);
+		background: var(--modal-overlay);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -197,16 +197,16 @@
 	}
 
 	.modal {
-		background: var(--surface);
-		border-radius: 18px;
+		background: var(--modal-bg);
+		border-radius: var(--radius);
 		width: 100%;
 		max-width: 480px;
 		max-height: 80vh;
 		display: flex;
 		flex-direction: column;
 		overflow: hidden;
-		border: 1px solid var(--surface-hover);
-		box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+		border: var(--modal-border);
+		box-shadow: var(--modal-shadow);
 		animation: modal-in 0.25s cubic-bezier(0.2, 0, 0, 1);
 	}
 
