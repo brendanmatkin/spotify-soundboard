@@ -37,6 +37,27 @@ function extractPlaylistContextUri(input?: string | null): string | null {
   return null;
 }
 
+function normalizeSpotifyState(state: any) {
+  return {
+    backend: "spotify" as const,
+    playbackState: state.is_playing ? "PLAYING" : "PAUSED_PLAYBACK",
+    playMode: {
+      shuffle: state.shuffle_state ?? false,
+      repeat: state.repeat_state ?? "off",
+      crossfade: false,
+    },
+    contextUri: state.context?.uri ?? null,
+    currentTrack: {
+      title: state.item?.name ?? null,
+      artist: state.item?.artists?.map((a: { name: string }) => a.name).join(", ") ?? null,
+      duration: Math.floor((state.item?.duration_ms ?? 0) / 1000),
+      uri: state.item?.uri ?? "",
+    },
+    volume: state.device?.volume_percent ?? 0,
+    elapsedTime: Math.floor((state.progress_ms ?? 0) / 1000),
+  };
+}
+
 export const GET: RequestHandler = async () => {
   const config = await readConfig();
 
@@ -45,31 +66,31 @@ export const GET: RequestHandler = async () => {
     const state = await getPlayerState(token);
     if (!state) return json(null);
 
-    return json({
-      playbackState: state.is_playing ? "PLAYING" : "PAUSED_PLAYBACK",
-      playMode: {
-        shuffle: state.shuffle_state ?? false,
-        repeat: state.repeat_state ?? "off",
-        crossfade: false,
-      },
-      contextUri: state.context?.uri ?? null,
-      currentTrack: {
-        title: state.item?.name ?? null,
-        artist: state.item?.artists?.map((a: { name: string }) => a.name).join(", ") ?? null,
-        duration: Math.floor((state.item?.duration_ms ?? 0) / 1000),
-        uri: state.item?.uri ?? "",
-      },
-      volume: state.device?.volume_percent ?? 0,
-      elapsedTime: Math.floor((state.progress_ms ?? 0) / 1000),
-    });
+    return json(normalizeSpotifyState(state));
   }
 
-  const state = await getState();
-  if (!state) return json(null);
+  // When Sonos is selected, still prefer Spotify if a Spotify Connect session
+  // is currently active. This keeps the UI/backend indicator in sync after fresh start.
+  try {
+    const token = await getAccessToken();
+    const spotifyState = await getPlayerState(token);
+    if (spotifyState?.is_playing) {
+      return json(normalizeSpotifyState(spotifyState));
+    }
+  } catch {
+    /* ignore spotify detection failures */
+  }
+
+  const sonosState = await getState();
+
+  if (!sonosState) return json(null);
 
   return json({
-    ...state,
-    contextUri: extractPlaylistContextUri(state.nextTrack?.uri ?? state.currentTrack?.uri),
+    backend: "sonos" as const,
+    ...sonosState,
+    contextUri: extractPlaylistContextUri(
+      sonosState.nextTrack?.uri ?? sonosState.currentTrack?.uri,
+    ),
   });
 };
 

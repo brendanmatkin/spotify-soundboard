@@ -37,8 +37,6 @@ export const POST: RequestHandler = async ({ request }) => {
   try {
     const { deviceId } = await request.json();
     if (!deviceId) throw error(400, "Missing deviceId");
-    const config = await readConfig();
-    if (config.playback_backend !== "spotify") return json({ ok: true });
     const token = await getAccessToken();
     await transferPlayback(token, deviceId);
     return json({ ok: true });

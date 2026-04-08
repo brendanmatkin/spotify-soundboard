@@ -46,6 +46,7 @@
       if (!res.ok) return;
       const state = await res.json();
       if (state) {
+        playbackBackend = state.backend ?? playbackBackend;
         const serverIsPlaying = state.playbackState === "PLAYING";
 
         // Ignore a brief stale state right after optimistic play/pause.
@@ -198,11 +199,10 @@
       const res = await fetch("/api/config");
       if (!res.ok) return;
       const config = await res.json();
+      selectedDeviceId = config.selected_device_id ?? selectedDeviceId;
       const fresh = (config.buttons ?? []).filter((b: ButtonConfig) => b.playlist_uri);
       if (JSON.stringify($state.snapshot(buttons)) !== JSON.stringify(fresh)) {
         buttons = fresh;
-        playbackBackend = config.playback_backend ?? playbackBackend;
-        selectedDeviceId = config.selected_device_id ?? selectedDeviceId;
       }
     } catch {
       /* ignore */
