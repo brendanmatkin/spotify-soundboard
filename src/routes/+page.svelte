@@ -10,6 +10,7 @@
   const editCtx = getContext<{ readonly value: boolean; toggle: () => void }>("editMode");
 
   let buttons = $state<ButtonConfig[]>(untrack(() => data.buttons.filter((b) => b.playlist_uri)));
+  let playbackBackend = $state<"sonos" | "spotify">(untrack(() => data.playbackBackend ?? "sonos"));
   let selectedDeviceId = $state<string | null>(untrack(() => data.selectedDeviceId));
 
   // ─── Error toast ───
@@ -28,11 +29,16 @@
   let nowPlayingTrack = $state<string | null>(null);
   let nowPlayingArtist = $state<string | null>(null);
   let nowPlayingContextUri = $state<string | null>(null);
+  let nowPlayingContextSource = $state<"api" | "optimistic" | null>(null);
   let volume = $state(50);
   let progressMs = $state(0);
   let durationMs = $state(0);
   let progressUpdatedAt = $state(0);
   let displayProgress = $state(0);
+  let optimisticPlayTarget = $state<boolean | null>(null);
+  let optimisticPlayUntil = $state(0);
+  let optimisticHighlightTarget = $state<string | null>(null);
+  let optimisticHighlightUntil = $state(0);
 
   async function fetchPlayerState() {
     try {
@@ -40,16 +46,56 @@
       if (!res.ok) return;
       const state = await res.json();
       if (state) {
-        isPlaying = state.is_playing ?? false;
-        shuffleOn = state.shuffle_state ?? false;
-        nowPlayingTrack = state.item?.name ?? null;
-        nowPlayingArtist =
-          state.item?.artists?.map((a: { name: string }) => a.name).join(", ") ?? null;
-        nowPlayingContextUri = state.context?.uri ?? null;
-        volume = state.device?.volume_percent ?? volume;
-        progressMs = state.progress_ms ?? 0;
-        durationMs = state.item?.duration_ms ?? 0;
+        const serverIsPlaying = state.playbackState === "PLAYING";
+
+        // Ignore a brief stale state right after optimistic play/pause.
+        if (
+          optimisticPlayTarget !== null &&
+          Date.now() < optimisticPlayUntil &&
+          serverIsPlaying !== optimisticPlayTarget
+        ) {
+          // Keep optimistic isPlaying until Sonos state catches up.
+        } else {
+          isPlaying = serverIsPlaying;
+          if (optimisticPlayTarget !== null && serverIsPlaying === optimisticPlayTarget) {
+            optimisticPlayTarget = null;
+            optimisticPlayUntil = 0;
+          }
+        }
+        shuffleOn = state.playMode?.shuffle ?? false;
+        nowPlayingTrack = state.currentTrack?.title ?? null;
+        nowPlayingArtist = state.currentTrack?.artist ?? null;
+        const now = Date.now();
+        const nextContextUri = state.contextUri ?? null;
+        if (
+          optimisticHighlightTarget !== null &&
+          now < optimisticHighlightUntil &&
+          nextContextUri !== null &&
+          nextContextUri !== optimisticHighlightTarget
+        ) {
+          // Keep optimistic playlist highlight until backend context catches up.
+        } else if (nextContextUri) {
+          nowPlayingContextUri = nextContextUri;
+          nowPlayingContextSource = "api";
+          if (optimisticHighlightTarget === nextContextUri) {
+            optimisticHighlightTarget = null;
+            optimisticHighlightUntil = 0;
+          }
+        } else if (playbackBackend === "spotify") {
+          nowPlayingContextUri = null;
+          nowPlayingContextSource = null;
+        }
+        if (optimisticHighlightTarget !== null && now >= optimisticHighlightUntil) {
+          optimisticHighlightTarget = null;
+          optimisticHighlightUntil = 0;
+          if (nowPlayingContextSource === "optimistic" && !nextContextUri) {
+            nowPlayingContextSource = null;
+          }
+        }
+        volume = state.volume ?? volume;
+        progressMs = (state.elapsedTime ?? 0) * 1000;
         progressUpdatedAt = Date.now();
+        durationMs = (state.currentTrack?.duration ?? 0) * 1000;
       }
     } catch {
       /* ignore */
@@ -65,10 +111,24 @@
   }
 
   async function playerAction(action: string, value?: boolean | number) {
-    if (action === "pause" || action === "resume") {
-      await fetchPlayerState();
-      action = isPlaying ? "pause" : "resume";
+    const prevIsPlaying = isPlaying;
+
+    // Optimistic UI toggle for snappy play/pause controls.
+    if (action === "pause") {
+      optimisticPlayTarget = false;
+      optimisticPlayUntil = Date.now() + 2500;
+      if (progressUpdatedAt > 0 && durationMs > 0) {
+        const elapsed = Date.now() - progressUpdatedAt;
+        progressMs = Math.min(progressMs + elapsed, durationMs);
+      }
+      isPlaying = false;
+    } else if (action === "resume") {
+      optimisticPlayTarget = true;
+      optimisticPlayUntil = Date.now() + 2500;
+      isPlaying = true;
+      progressUpdatedAt = Date.now();
     }
+
     try {
       const res = await fetch("/api/player", {
         method: "POST",
@@ -76,11 +136,17 @@
         body: JSON.stringify({ action, value }),
       });
       if (!res.ok) {
+        isPlaying = prevIsPlaying;
+        optimisticPlayTarget = null;
+        optimisticPlayUntil = 0;
         const d = await res.json().catch(() => ({}));
         showError(d.message ?? `${action} failed`);
       }
       setTimeout(fetchPlayerState, 300);
     } catch {
+      isPlaying = prevIsPlaying;
+      optimisticPlayTarget = null;
+      optimisticPlayUntil = 0;
       showError("Network error");
     }
   }
@@ -135,6 +201,7 @@
       const fresh = (config.buttons ?? []).filter((b: ButtonConfig) => b.playlist_uri);
       if (JSON.stringify($state.snapshot(buttons)) !== JSON.stringify(fresh)) {
         buttons = fresh;
+        playbackBackend = config.playback_backend ?? playbackBackend;
         selectedDeviceId = config.selected_device_id ?? selectedDeviceId;
       }
     } catch {
@@ -150,23 +217,39 @@
 
   // ─── Playback ───
   let playingId = $state<string | null>(null);
+  let lastPlayedUri = $state<string | null>(null);
 
   async function play(btn: ButtonConfig) {
     if (!btn.playlist_uri) return;
+    const prevContextUri = nowPlayingContextUri;
+    const prevContextSource = nowPlayingContextSource;
     playingId = btn.id;
+    lastPlayedUri = btn.playlist_uri;
+    nowPlayingContextUri = btn.playlist_uri;
+    nowPlayingContextSource = "optimistic";
+    optimisticHighlightTarget = btn.playlist_uri;
+    optimisticHighlightUntil = Date.now() + 3500;
     setTimeout(() => (playingId = null), 400);
     try {
       const res = await fetch("/api/play", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playlist_uri: btn.playlist_uri, device_id: selectedDeviceId }),
+        body: JSON.stringify({ playlist_uri: btn.playlist_uri }),
       });
       if (!res.ok) {
+        nowPlayingContextUri = prevContextUri;
+        nowPlayingContextSource = prevContextSource;
+        optimisticHighlightTarget = null;
+        optimisticHighlightUntil = 0;
         const d = await res.json().catch(() => ({ message: "Playback failed" }));
         showError(d.message ?? "Playback failed");
       }
       setTimeout(fetchPlayerState, 500);
     } catch {
+      nowPlayingContextUri = prevContextUri;
+      nowPlayingContextSource = prevContextSource;
+      optimisticHighlightTarget = null;
+      optimisticHighlightUntil = 0;
       showError("Network error");
     }
   }
@@ -187,6 +270,7 @@
           body: JSON.stringify({
             buttons: $state.snapshot(buttons),
             grid_size: buttons.length,
+            playback_backend: playbackBackend,
             selected_device_id: selectedDeviceId,
           }),
         });
@@ -249,10 +333,77 @@
     showDevices = true;
   }
 
-  function selectDevice(id: string | null) {
+  async function selectDevice(id: string | null) {
     selectedDeviceId = id;
     showDevices = false;
     saveConfig();
+    if (playbackBackend === "spotify" && id) {
+      try {
+        await fetch("/api/devices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deviceId: id }),
+        });
+        setTimeout(fetchPlayerState, 600);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  async function selectBackend(backend: "sonos" | "spotify") {
+    if (playbackBackend === backend) return;
+
+    try {
+      await fetch("/api/player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "stop" }),
+      });
+    } catch {
+      /* ignore */
+    }
+
+    // Prefer what's currently playing; fall back to last tapped playlist
+    const uriToResume = nowPlayingContextUri ?? lastPlayedUri;
+    playbackBackend = backend;
+    isPlaying = false;
+    nowPlayingContextSource = null;
+    optimisticHighlightTarget = null;
+    optimisticHighlightUntil = 0;
+    selectedDeviceId = null;
+    devices = [];
+    showDevices = false;
+
+    // Flush config immediately so /api/play reads the correct backend
+    try {
+      await fetch("/api/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buttons: $state.snapshot(buttons),
+          grid_size: buttons.length,
+          playback_backend: backend,
+          selected_device_id: null,
+        }),
+      });
+    } catch {
+      /* ignore */
+    }
+
+    if (uriToResume) {
+      try {
+        await fetch("/api/play", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playlist_uri: uriToResume }),
+        });
+      } catch {
+        /* ignore */
+      }
+    }
+
+    fetchPlayerState();
   }
 
   let selectedDeviceName = $derived(devices.find((d) => d.id === selectedDeviceId)?.name ?? "Auto");
@@ -292,6 +443,8 @@
   {nowPlayingArtist}
   {volume}
   {displayProgress}
+  backend={playbackBackend}
+  contextSource={nowPlayingContextSource}
   {selectedDeviceName}
   {devices}
   {showDevices}
@@ -300,6 +453,7 @@
   onvolumeinput={handleVolumeInput}
   onloaddevices={loadDevices}
   onselectdevice={selectDevice}
+  onselectbackend={selectBackend}
 />
 
 {#if editingIndex !== null}

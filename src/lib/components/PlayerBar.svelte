@@ -8,6 +8,8 @@
     nowPlayingArtist,
     volume,
     displayProgress,
+    backend,
+    contextSource,
     selectedDeviceName,
     devices,
     showDevices,
@@ -16,6 +18,7 @@
     onvolumeinput,
     onloaddevices,
     onselectdevice,
+    onselectbackend,
   }: {
     isPlaying: boolean;
     shuffleOn: boolean;
@@ -23,6 +26,8 @@
     nowPlayingArtist: string | null;
     volume: number;
     displayProgress: number;
+    backend: "sonos" | "spotify";
+    contextSource: "api" | "optimistic" | null;
     selectedDeviceName: string;
     devices: SpotifyDevice[];
     showDevices: boolean;
@@ -31,6 +36,7 @@
     onvolumeinput: (e: Event) => void;
     onloaddevices: () => void;
     onselectdevice: (id: string | null) => void;
+    onselectbackend: (backend: "sonos" | "spotify") => void;
   } = $props();
 </script>
 
@@ -69,6 +75,23 @@
   </div>
 
   <div class="bar-row-2">
+    <div class="route-controls">
+      <button
+        class="backend-btn"
+        class:active={backend === "sonos"}
+        onclick={() => onselectbackend("sonos")}
+      >
+        Sonos
+      </button>
+      <button
+        class="backend-btn"
+        class:active={backend === "spotify"}
+        onclick={() => onselectbackend("spotify")}
+      >
+        Spotify
+      </button>
+    </div>
+
     <button class="device-btn" onclick={onloaddevices}>
       &#x266A; {selectedDeviceName}
     </button>
@@ -104,6 +127,11 @@
 
     <div class="now-playing">
       {#if nowPlayingTrack}
+        {#if contextSource}
+          <span class="context-badge" class:optimistic={contextSource === "optimistic"}>
+            {contextSource === "optimistic" ? "Syncing" : "Live"}
+          </span>
+        {/if}
         <span class="track-name">{nowPlayingTrack}</span>
         {#if nowPlayingArtist}<span class="track-artist">&middot; {nowPlayingArtist}</span>{/if}
       {:else}
@@ -177,6 +205,25 @@
     display: none;
   }
 
+  .route-controls {
+    display: flex;
+    gap: 6px;
+  }
+
+  .backend-btn {
+    background: var(--ctrl-bg);
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    padding: 5px 9px;
+    font-size: 0.68rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .backend-btn.active {
+    color: var(--text-main);
+    border-color: var(--accent, #f5f5f5);
+  }
+
   .vol-desktop {
     width: 80px;
     height: 4px;
@@ -198,7 +245,8 @@
     }
     .bar-row-2 {
       display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      grid-template-columns: auto auto 1fr auto;
+      align-items: center;
       padding: 6px 20px 10px;
     }
     .controls.desktop-only {
@@ -222,6 +270,25 @@
 
   .device-btn:active {
     background: var(--surface-hover);
+  }
+
+  .context-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    margin-right: 8px;
+    border-radius: 999px;
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: rgba(180, 215, 180, 0.2);
+    border: 1px solid rgba(180, 215, 180, 0.35);
+    color: var(--text-dim);
+  }
+
+  .context-badge.optimistic {
+    background: rgba(230, 210, 140, 0.2);
+    border-color: rgba(230, 210, 140, 0.35);
   }
 
   .controls {
