@@ -15,13 +15,19 @@ function makeDefaultConfig(gridSize = 12): AppConfig {
       image_url: null,
     });
   }
-  return { buttons, grid_size: gridSize, selected_device_id: null };
+  return { buttons, grid_size: gridSize, playback_backend: "sonos", selected_device_id: null };
 }
 
 export async function readConfig(): Promise<AppConfig> {
   try {
     const data = await fs.readFile(CONFIG_FILE, "utf-8");
-    return JSON.parse(data);
+    const parsed = JSON.parse(data) as Partial<AppConfig>;
+    return {
+      buttons: parsed.buttons ?? [],
+      grid_size: parsed.grid_size ?? 12,
+      playback_backend: parsed.playback_backend ?? "sonos",
+      selected_device_id: parsed.selected_device_id ?? null,
+    };
   } catch {
     return makeDefaultConfig();
   }

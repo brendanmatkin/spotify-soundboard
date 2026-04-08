@@ -10,6 +10,7 @@ export interface ButtonConfig {
 export interface AppConfig {
   buttons: ButtonConfig[];
   grid_size: number;
+  playback_backend: "sonos" | "spotify";
   selected_device_id: string | null;
 }
 

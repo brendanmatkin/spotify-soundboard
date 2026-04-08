@@ -142,6 +142,18 @@ export async function setVolume(token: string, percent: number) {
   }
 }
 
+export async function transferPlayback(token: string, deviceId: string): Promise<void> {
+  // Let Spotify Connect handle the session handoff natively
+  const res = await apiFetch(token, `${API}/me/player`, {
+    method: "PUT",
+    body: JSON.stringify({ device_ids: [deviceId], play: true }),
+  });
+  if (!res.ok && res.status !== 204) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message ?? `Transfer failed (${res.status})`);
+  }
+}
+
 export async function getPlayerState(token: string) {
   const res = await apiFetch(token, `${API}/me/player`);
   if (res.status === 204) return null;

@@ -6,6 +6,7 @@ export const load: PageServerLoad = async () => {
   return {
     buttons: config.buttons,
     gridSize: config.grid_size,
+    playbackBackend: config.playback_backend,
     selectedDeviceId: config.selected_device_id,
   };
 };
