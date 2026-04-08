@@ -27,6 +27,9 @@ importers:
       prettier:
         specifier: 3.8.1
         version: 3.8.1
+      prettier-plugin-svelte:
+        specifier: ^3.5.1
+        version: 3.5.1(prettier@3.8.1)(svelte@5.55.2)
       svelte:
         specifier: ^5.51.0
         version: 5.55.2
@@ -1584,6 +1587,12 @@ packages:
     resolution: {integrity: sha512-ESF23V4SKG6lVSGZgYNpbsiaAkdab6ZgOxe52p7+Kid3W3u3bxR4Vfd/o21dmN7jSt0IwgZ4v5MUd26FEtXE9w==}
     engines: {node: '>= 0.8.0'}
 
+  prettier-plugin-svelte@3.5.1:
+    resolution: {integrity: sha512-65+fr5+cgIKWKiqM1Doum4uX6bY8iFCdztvvp2RcF+AJoieaw9kJOFMNcJo/bkmKYsxFaM9OsVZK/gWauG/5mg==}
+    peerDependencies:
+      prettier: ^3.0.0
+      svelte: ^3.2.0 || ^4.0.0-next.0 || ^5.0.0-next.0
+
   prettier@3.8.1:
     resolution: {integrity: sha512-UOnG6LftzbdaHZcKoPFtOcCKztrQ57WkHDeRD9t/PTQtmT0NHSeWWepj6pS0z/N7+08BHFDQVUrfmfMRcZwbMg==}
     engines: {node: '>=14'}
@@ -1802,7 +1811,7 @@ packages:
     engines: {node: '>=4'}
 
   sonos-discovery@https://github.com/jishi/node-sonos-discovery/archive/v1.8.0.tar.gz:
-    resolution: {integrity: sha512-ZDJoW3kcDYMEfGwaxyyk1Tg+Max/FewyLU4YEKaEhBrf7df3eAdrhJADRsZy5UmmKT/ZxavMiShx1IUjE/PYUw==, tarball: https://github.com/jishi/node-sonos-discovery/archive/v1.8.0.tar.gz}
+    resolution: {tarball: https://github.com/jishi/node-sonos-discovery/archive/v1.8.0.tar.gz}
     version: 1.8.0
     engines: {node: '>=4 <23'}
 
@@ -3592,6 +3601,11 @@ snapshots:
       source-map-js: 1.2.1
 
   prelude-ls@1.1.2: {}
+
+  prettier-plugin-svelte@3.5.1(prettier@3.8.1)(svelte@5.55.2):
+    dependencies:
+      prettier: 3.8.1
+      svelte: 5.55.2
 
   prettier@3.8.1: {}
 
